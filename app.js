@@ -35,7 +35,8 @@ const userSchema = new mongoose.Schema({
   email: String,
   password: String,
   googleId: String,
-  facebookId: String
+  facebookId: String,
+  secret: String
 });
 
 //Use passportLocalMongoose/findOrCreate Plugin to schema
@@ -128,18 +129,47 @@ app.get("/register", (req, res) => {
   res.render('register');
 });
 
-app.get("/secrets", (req, res) => {
-  if (req.isAuthenticated()) {
-    res.render("secrets");
-  } else {
+app.get("/submit", (req, res)=>{
+  if(req.isAuthenticated()){
+    res.render("submit");
+  } else{
     res.redirect("/login");
   }
+});
+
+app.get("/secrets", (req, res) => {
+  User.find({"secret": {$ne:null}}, (err, foundUser)=>{
+    if(err){
+      console.log(err);
+    } else{
+      if(foundUser != null){
+        res.render("secrets", {userWithSecrets: foundUser});
+      }
+    }
+  })
 });
 
 app.get("/logout", (req, res) => {
   req.logOut();
   res.redirect('/');
 });
+
+app.post("/submit", (req, res)=>{
+  const submittedSecret = req.body.secret;
+
+  User.findById(req.user.id, (err, foundUser)=>{
+    if(err){
+      console.log(err);
+    } else{
+      if(foundUser){
+        foundUser.secret = submittedSecret;
+        foundUser.save(()=>{
+          res.redirect("/secrets");
+        });
+      }
+    }
+  })
+})
 
 app.post("/register", (req, res) => {
   User.register({
